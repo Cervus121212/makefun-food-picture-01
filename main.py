@@ -2,8 +2,9 @@
 """food-picture-01 entry: render the double smash burger picture.
 
 Reads assets/base.png, downscales it with area averaging to 1024x683,
-applies a fixed warm colour grade and a gentle radial vignette, and writes
-a deterministic PNG to MAKEFUN_OUTPUT_DIR/entry.png (or /output/entry.png).
+applies a fixed warm colour grade with a soft highlight rolloff and a
+gentle radial vignette, and writes a deterministic PNG to
+MAKEFUN_OUTPUT_DIR/entry.png (or /output/entry.png).
 
 Python 3, standard library only. Fully deterministic: no clock, no random
 numbers, no network, no environment-dependent input. Two runs write
@@ -28,6 +29,15 @@ GRADE_G_MUL = 1.01
 GRADE_G_ADD = 2.0
 GRADE_B_MUL = 0.95
 GRADE_B_ADD = 0.0
+
+# Soft highlight rolloff: values above this knee are compressed so the
+# glossy bun dome and the molten-cheese highlights keep a gradient
+# instead of clipping flat. The warm grade pushes red up to ~271 before
+# clamping, so without this the brightest bun highlights blow out to a
+# uniform orange patch and lose the sheen detail that sells "fresh off
+# the grill". Slope 0.5 caps the brightest graded value at ~248.
+HIGHLIGHT_KNEE = 225.0
+HIGHLIGHT_SLOPE = 0.5
 
 # Radial vignette: corners end up this much darker than the centre.
 VIGNETTE_MAX = 0.12
@@ -225,8 +235,15 @@ def downscale(rgb, src_w, src_h, dst_w, dst_h):
 
 # ------------------------------------------------------------- grade + encode
 
+def _rolloff(v):
+    """Soft knee: compress values above HIGHLIGHT_KNEE toward white."""
+    if v <= HIGHLIGHT_KNEE:
+        return v
+    return HIGHLIGHT_KNEE + (v - HIGHLIGHT_KNEE) * HIGHLIGHT_SLOPE
+
+
 def grade(rgb, width, height):
-    """Warm grade + radial vignette, in place on a bytearray copy."""
+    """Warm grade + highlight rolloff + radial vignette, in place on a copy."""
     out = bytearray(rgb)
     half_w = width / 2.0
     half_h = height / 2.0
@@ -241,9 +258,9 @@ def grade(rgb, width, height):
                 d2 = 1.0
             vig = 1.0 - VIGNETTE_MAX * d2
             k = row + x * 3
-            r = out[k] * GRADE_R_MUL + GRADE_R_ADD
-            g = out[k + 1] * GRADE_G_MUL + GRADE_G_ADD
-            b = out[k + 2] * GRADE_B_MUL + GRADE_B_ADD
+            r = _rolloff(out[k] * GRADE_R_MUL + GRADE_R_ADD)
+            g = _rolloff(out[k + 1] * GRADE_G_MUL + GRADE_G_ADD)
+            b = _rolloff(out[k + 2] * GRADE_B_MUL + GRADE_B_ADD)
             out[k] = 255 if r > 255 else (0 if r < 0 else int(r + 0.5))
             out[k + 1] = 255 if g > 255 else (0 if g < 0 else int(g + 0.5))
             out[k + 2] = 255 if b > 255 else (0 if b < 0 else int(b + 0.5))
