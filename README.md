@@ -19,9 +19,10 @@ deterministically from `assets/base.png`:
    unfiltering for filters 0–4, colour types 0/2/3/4/6, 8-bit).
 2. **Downscale** by area averaging from 1920×1280 to 1024×683 (inside the
    gate: at most 1024×1024 pixels and 1 MiB).
-3. **Grade**: a fixed warm colour grade (red ×1.045, blue ×0.955, small
-   brightness lifts) plus a fixed radial vignette (up to 10% darker at the
-   corners) so the eye stays on the burger, while the steam stays bright.
+3. **Grade**: a fixed warm colour grade (red ×1.05, green ×1.01, blue
+   ×0.95, small brightness lifts) plus a fixed radial vignette (up to 12%
+   darker at the corners) so the eye stays on the burger, while the steam
+   stays bright.
 4. **Encode** as PNG with a per-scanline best filter (None/Sub/Up/Average/
    Paeth, chosen by minimum signed-byte cost) and zlib level 9.
 
